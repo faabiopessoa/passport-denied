@@ -1,0 +1,3 @@
+repository "My project/Passport denied@4674083910418@cloud"
+  path "/"
+    smartbranch "/main/Fabio"
