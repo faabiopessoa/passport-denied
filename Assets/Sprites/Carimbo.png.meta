@@ -126,7 +126,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 100
-        y: 212
+        y: 213
         width: 80
         height: 78
       alignment: 0
@@ -165,6 +165,28 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Carimbo
+      rect:
+        serializedVersion: 2
+        x: 68
+        y: 135
+        width: 363
+        height: 212
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 2, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5abc673e19405d74e99baabf740d8898
+      internalID: 1250981137
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
@@ -180,6 +202,7 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       Aprovado: 1371044690
+      Carimbo: 1250981137
       Negado: -937933062
       Seta: 8424354790652314523
   mipmapLimitGroupName: 

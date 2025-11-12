@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections; // Necessário para Coroutines
+using TMPro; // Necessário para TextMeshPro
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -20,6 +22,13 @@ public class GameManager : MonoBehaviour
     private CharacterController currentCharacter;
     private bool isTransitioning = false; // Evitar ações múltiplas durante transições
 
+    public Button botaoAceitar;
+    public Button botaoNegar;
+    public Button botaoPassar;
+    public TextMeshProUGUI pontuacaoText; 
+
+    private int pontuacao = 0;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -35,6 +44,10 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         StartNewDay();
+        botaoAceitar.onClick.AddListener(AoAceitar);
+        botaoNegar.onClick.AddListener(AoNegar);
+        botaoPassar.onClick.AddListener(AoPassar);
+        AtualizarPontuacao();
     }
 
     public void StartNewDay()
@@ -119,5 +132,30 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("Documento RECUSADO. Processando decisão.");
         ProcessDecision(false);
+    }
+
+    void AoAceitar()
+    {
+        pontuacao += 1;
+        Debug.Log("Points: " + pontuacao);
+        AtualizarPontuacao();
+    }
+
+    void AoNegar()
+    {
+        pontuacao -= 1;
+        Debug.Log("Points: " + pontuacao);
+        AtualizarPontuacao();
+    }
+
+    void AoPassar()
+    {
+        Debug.Log("Passou para o proximo candidato!");
+        // Aqui entra a lógica quando o jogador passa
+    }
+
+    void AtualizarPontuacao()
+    {
+        pontuacaoText.text = "Points: " + pontuacao;
     }
 }
