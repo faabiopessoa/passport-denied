@@ -5,11 +5,15 @@ using UnityEngine.Events;
 public class CountdownHUD : MonoBehaviour
 {
     [Header("Configuração")]
+    [Tooltip("Duração inicial do atendimento, em segundos. Valor padrão.")]
+    public float defaultStartSeconds = 90f; // Mudou para defaultStartSeconds
     [Tooltip("Duração inicial do atendimento, em segundos.")]
     public float startSeconds = 90f;
 
     [Tooltip("Segundos restantes para iniciar o alerta sonoro e visual.")]
     public float alertThreshold = 8f;
+
+    private float _currentServiceDuration; // Armazena a duração do serviço para o personagem atual
 
     [Header("Referências")]
     public TextMeshProUGUI timeText;
@@ -32,9 +36,9 @@ public class CountdownHUD : MonoBehaviour
 
     void Start()
     {
+        _currentServiceDuration = defaultStartSeconds; // Inicia com o valor padrão
         ResetTimer();
-        StartTimer();
-        UpdateLabel();
+        UpdateLabel(); // Garante que o label exiba o tempo inicial correto
     }
 
     void Update()
@@ -81,9 +85,17 @@ public class CountdownHUD : MonoBehaviour
         StopFlashing();
     }
 
+    public void SetStartSeconds(float newDuration)
+    {
+        _currentServiceDuration = newDuration;
+        ResetTimer(); // Reseta o timer com a nova duração
+        // O timer não é iniciado automaticamente aqui, o GameManager fará isso.
+    }
+
     public void ResetTimer()
     {
-        _timeLeft = Mathf.Max(0f, startSeconds);
+        // _timeLeft = Mathf.Max(0f, startSeconds);
+        _timeLeft = Mathf.Max(0f, _currentServiceDuration);
         StopAlert();
         StopFlashing();
         if (timeText != null)
