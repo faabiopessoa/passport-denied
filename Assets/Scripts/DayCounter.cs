@@ -36,6 +36,7 @@ public class DayCounter : MonoBehaviour
         _currentDay = Mathf.Max(1, day);
         if (dayLabel != null)
             dayLabel.text = $"DIA \n{_currentDay:00}";
+
         onDayChanged?.Invoke(_currentDay);
     }
 
