@@ -1,42 +1,39 @@
 using UnityEngine;
-using System.Collections; // Necessário para Coroutines
-using System.Collections.Generic; // Necessário para List
-using TMPro; // Necessário para TextMeshPro
+using System.Collections;
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [Header("Configuração de Níveis/Dias")] // NOVO HEADER
-    [Tooltip("A lista de configurações para cada dia do jogo.")] // NOVO
-    public List<DayConfig> dayConfigurations; // NOVO: Lista de ScriptableObjects DayConfig
+    [Header("Configuração de Níveis/Dias")]
+    public List<DayConfig> dayConfigurations;
 
     [Header("Referências de Prefabs e Cena")]
-    [Tooltip("O Prefab do personagem que será instanciado.")]
     public GameObject characterPrefab;
-    [Tooltip("O local onde os novos personagens irão surgir.")]
     public Transform characterSpawnPoint;
-    [Tooltip("A referência para o script do HUD do contador.")]
     public CountdownHUD countdownHUD;
-    [Tooltip("A referência para o script do contador de dias.")] // NOVO
-    public DayCounter dayCounter; // NOVO: Referência para o DayCounter
-    [Tooltip("O Prefab da tela de transição entre os dias.")] // NOVO
-    public GameObject transitionScreenPrefab; // NOVO: Prefab da tela de transição
+    public DayCounter dayCounter; 
+    public GameObject transitionScreenPrefab;
 
-    // REMOVIDO: delayBetweenCharacters (agora vem do DayConfig)
-
-    private CharacterController currentCharacter;
-    private bool isTransitioning = false; // Evitar ações múltiplas durante transições
-
-    private int currentDayIndex = 0; // NOVO: Índice do dia atual na lista dayConfigurations
-    private int charactersProcessedToday = 0; // NOVO: Contador de personagens processados no dia
-    private DayConfig currentDayConfig; // NOVO: A configuração do dia atual
+    [Header("Referências de UI e Controle")]
+    // IMPORTANTE: Arraste o objeto que tem o script PassportController aqui no Inspector
+    public PassportController passportController; 
+    
+    // Botões que agora estão na cena principal
     public Button botaoAceitar;
     public Button botaoNegar;
     public Button botaoPassar;
     public TextMeshProUGUI pontuacaoText; 
 
+    private CharacterController currentCharacter;
+    private bool isTransitioning = false; 
+
+    private int currentDayIndex = 0; 
+    private int charactersProcessedToday = 0; 
+    private DayConfig currentDayConfig; 
     private int pontuacao = 0;
 
     private void Awake()
@@ -53,88 +50,78 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        // Certifique-se de que temos configurações de dias.
-        if (dayConfigurations == null || dayConfigurations.Count == 0) // NOVO
+        if (dayConfigurations == null || dayConfigurations.Count == 0)
         {
-            Debug.LogError("Nenhuma configuração de dia encontrada no GameManager!"); // NOVO
-            return; // NOVO
+            Debug.LogError("Nenhuma configuração de dia encontrada no GameManager!");
+            return;
         }
 
         // Inicia o jogo no primeiro dia.
-        StartNewDay(0); // ALTERADO: Começa com o índice 0 (primeiro dia)
-        botaoAceitar.onClick.AddListener(AoAceitar);
-        botaoNegar.onClick.AddListener(AoNegar);
-        botaoPassar.onClick.AddListener(AoPassar);
+        StartNewDay(0);
+
+        // Configura os cliques dos botões
+        if(botaoAceitar != null) botaoAceitar.onClick.AddListener(AoAceitar);
+        if(botaoNegar != null) botaoNegar.onClick.AddListener(AoNegar);
+        if(botaoPassar != null) botaoPassar.onClick.AddListener(AoPassar);
+        
         AtualizarPontuacao();
     }
 
-    /// <summary>
-    /// Inicia um novo dia com base no índice fornecido.
-    /// </summary>
-    public void StartNewDay(int dayIndex) // ALTERADO: Adicionado parâmetro dayIndex
+    public void StartNewDay(int dayIndex) 
     {
-        currentDayIndex = dayIndex; // NOVO
-        if (currentDayIndex >= dayConfigurations.Count) // NOVO: Verifica se todos os dias foram completados
+        currentDayIndex = dayIndex; 
+        if (currentDayIndex >= dayConfigurations.Count) 
         {
-            Debug.Log("Todos os dias foram completados! Fim do jogo."); // NOVO
-            // TODO: Chamar tela de fim de jogo ou créditos
-            return; // NOVO
+            Debug.Log("Todos os dias foram completados! Fim do jogo."); 
+            return; 
         }
 
-        currentDayConfig = dayConfigurations[currentDayIndex]; // NOVO: Carrega a configuração do dia
-        Debug.Log($"Novo dia {currentDayIndex + 1} começando com {currentDayConfig.numberOfCharacters} personagens e {currentDayConfig.characterServiceDuration}s por personagem!"); // NOVO
-
-        // Atualiza o DayCounter
-        if (dayCounter != null) // NOVO
+        currentDayConfig = dayConfigurations[currentDayIndex]; 
+        
+        if (dayCounter != null) 
         {
-            dayCounter.SetDay(currentDayIndex + 1); // NOVO: +1 para mostrar dia 1, 2, etc.
+            dayCounter.SetDay(currentDayIndex + 1); 
         }
 
-        charactersProcessedToday = 0; // NOVO: Reseta o contador de personagens do dia
-        isTransitioning = false; // NOVO: Garante que a transição está desativada ao iniciar o dia
+        charactersProcessedToday = 0; 
+        isTransitioning = false; 
 
-        // Configura o HUD do contador com a duração específica deste dia
-        if (countdownHUD != null) // NOVO
+        if (countdownHUD != null) 
         {
-            // O SetStartSeconds precisa ser adicionado ao CountdownHUD.cs
-            countdownHUD.SetStartSeconds(currentDayConfig.characterServiceDuration); // NOVO
+            countdownHUD.SetStartSeconds(currentDayConfig.characterServiceDuration); 
         }
 
-        // Inicio do ciclo do primeiro personagem do dia
-        // ALTERADO: Adicionado parâmetro isFirstCharacterOfDay para NextCharacterRoutine
-        StartCoroutine(NextCharacterRoutine(true)); // Força a spawn do primeiro personagem sem atraso inicial
+        // Força a atualização das regras do dia no RuleManager, se existir
+        RuleManager ruleManager = FindObjectOfType<RuleManager>(); // Correção aqui também por garantia
+        if (ruleManager != null)
+        {
+            ruleManager.OnDayChanged(currentDayIndex + 1);
+        }
+
+        StartCoroutine(NextCharacterRoutine(true)); 
     }
 
-    /// <summary>
-    /// A rotina principal que gerencia a transição entre personagens.
-    /// </summary>
-    private IEnumerator NextCharacterRoutine(bool isFirstCharacterOfDay = false) // ALTERADO: Adicionado parâmetro
+    private IEnumerator NextCharacterRoutine(bool isFirstCharacterOfDay = false) 
     {
-        // 1. Espera um tempo antes de gerar o próximo (útil entre personagens).
-        // ALTERADO: Usa o delay do DayConfig e verifica se não é o primeiro personagem.
-        if (!isFirstCharacterOfDay && currentDayConfig.delayBetweenCharacters > 0f) // NOVO (com delay do DayConfig)
+        if (!isFirstCharacterOfDay && currentDayConfig.delayBetweenCharacters > 0f) 
         {
             yield return new WaitForSeconds(currentDayConfig.delayBetweenCharacters);
         }
 
-        // 2. Destrói o personagem anterior, se ele existir.
         if (currentCharacter != null)
         {
             Destroy(currentCharacter.gameObject);
-            currentCharacter = null; // NOVO: Limpa a referência
+            currentCharacter = null; 
         }
 
-        // NOVO: Verifica se ainda há personagens para este dia.
         if (charactersProcessedToday < currentDayConfig.numberOfCharacters)
         {
-            // 3. Spawna um novo personagem.
             SpawnNewCharacter();
         }
         else
         {
-            Debug.Log($"Todos os {currentDayConfig.numberOfCharacters} personagens do dia {currentDayIndex + 1} foram atendidos.");
-            // Todos os personagens do dia foram atendidos, hora da transição de dia.
-            StartCoroutine(DayTransitionRoutine()); // NOVO: Chama a rotina de transição de dia
+            Debug.Log($"Dia {currentDayIndex + 1} finalizado.");
+            StartCoroutine(DayTransitionRoutine()); 
         }
 
         isTransitioning = false;
@@ -142,70 +129,120 @@ public class GameManager : MonoBehaviour
 
     public void SpawnNewCharacter()
     {
-        if (characterPrefab == null || characterSpawnPoint == null)
-        {
-            Debug.LogError("Prefab do Personagem ou Ponto de Spawn não foram definidos no GameManager!");
-            return;
-        }
+        if (characterPrefab == null || characterSpawnPoint == null) return;
 
-        // Instancia o prefab no local de spawn.
         GameObject newCharObject = Instantiate(characterPrefab, characterSpawnPoint.position, Quaternion.identity);
         currentCharacter = newCharObject.GetComponent<CharacterController>();
 
-        // Reseta e inicia o timer para o novo personagem.
+        // Gera o passaporte para este novo personagem
+        if (passportController != null)
+        {
+            passportController.ClosePassport(); // Fecha visualmente para reiniciar
+            passportController.GenerateNewStudent(); // Cria os dados e o carimbo
+        }
+
         if (countdownHUD != null)
         {
             countdownHUD.ResetTimer();
             countdownHUD.StartTimer();
         }
 
-        charactersProcessedToday++; // NOVO: Incrementa o contador de personagens processados
+        charactersProcessedToday++; 
     }
 
-    /// <summary>
-    /// Método centralizado para processar uma decisão (Aceitar, Recusar, Timeout).
-    /// </summary>
+    // --- LÓGICA DE DECISÃO E PONTUAÇÃO ---
+
+    void AoAceitar()
+    {
+        if (isTransitioning) return;
+
+        // Se o passaporte é VÁLIDO e o jogador aceitou -> PONTO
+        if (passportController != null && passportController.IsCurrentPassportValid)
+        {
+            pontuacao++;
+            Debug.Log("ACERTOU: Aceitou um passaporte válido.");
+        }
+        else
+        {
+            Debug.Log("ERROU: Aceitou um passaporte inválido.");
+            // Lógica opcional: tirar pontos ou vidas
+        }
+
+        AtualizarPontuacao();
+        ProcessDecision(true); // Aprova o personagem visualmente
+    }
+
+    void AoNegar()
+    {
+        if (isTransitioning) return;
+
+        // Se o passaporte é INVÁLIDO e o jogador negou -> PONTO
+        if (passportController != null && !passportController.IsCurrentPassportValid)
+        {
+            pontuacao++;
+            Debug.Log("ACERTOU: Negou um passaporte inválido.");
+        }
+        else
+        {
+            Debug.Log("ERROU: Negou um passaporte válido.");
+        }
+
+        AtualizarPontuacao();
+        ProcessDecision(false); // Reprova o personagem visualmente
+    }
+
+    void AoPassar()
+    {
+        if (isTransitioning) return;
+
+        Debug.Log("PASSOU: Nenhum ponto ganho.");
+        // Considera como recusa/saída sem pontuar
+        ProcessDecision(false); 
+    }
+
+    void AtualizarPontuacao()
+    {
+        if (pontuacaoText != null)
+        {
+            pontuacaoText.text = "Points: " + pontuacao;
+        }
+    }
+
     private void ProcessDecision(bool wasApproved)
     {
-        // Se já estamos em transição, ignora cliques repetidos.
         if (isTransitioning) return;
-        isTransitioning = true; // Ativa a trava
+        isTransitioning = true; 
 
-        if (currentCharacter == null) // NOVO: Adicionado verificação para currentCharacter null
+        if (currentCharacter == null) 
         {
-            isTransitioning = false; // NOVO: Libera a trava se currentCharacter for null
+            isTransitioning = false; 
             return;
         }
 
-        countdownHUD.PauseTimer();
+        if (countdownHUD != null) countdownHUD.PauseTimer();
+        
         currentCharacter.StartExitSequence(wasApproved);
 
-        // Inicia a rotina para trazer o próximo personagem ou finalizar o dia. // ALTERADO: Comentário
         StartCoroutine(NextCharacterRoutine());
     }
 
-    // --- Rotina de Transição de Dia --- // NOVO MÉTODO
+    // --- Transição de Dia ---
     private IEnumerator DayTransitionRoutine()
     {
         Debug.Log("Iniciando transição para o próximo dia...");
 
-        // Desativa a interface do jogo (HUD, controles, etc.) para a transição
-        // Você precisará de referências para os elementos da UI principal para desativá-los
-        // Exemplo: UIManager.Instance.HideGameUI();
-
-        // Instancia a tela de transição
-        GameObject transitionScreenInstance = null; // ALTERADO nome da variável
         if (transitionScreenPrefab != null)
         {
-            transitionScreenInstance = Instantiate(transitionScreenPrefab, Vector3.zero, Quaternion.identity);
-            // Garante que a tela de transição esteja na camada de UI ou Canvas apropriado
-            Canvas parentCanvas = GameObject.FindObjectOfType<Canvas>(); // NOVO
-            if (parentCanvas != null) // NOVO
+            GameObject transitionScreenInstance = Instantiate(transitionScreenPrefab, Vector3.zero, Quaternion.identity);
+            
+            // CORREÇÃO: Usando FindObjectOfType (compatível com Unity antigo)
+            Canvas parentCanvas = FindObjectOfType<Canvas>(); 
+            
+            if (parentCanvas != null) 
             {
-                transitionScreenInstance.transform.SetParent(parentCanvas.transform, false); // NOVO
-                // Redefine a escala e posição para garantir que cubra o Canvas
-                RectTransform rt = transitionScreenInstance.GetComponent<RectTransform>(); // NOVO
-                if (rt != null) // NOVO
+                transitionScreenInstance.transform.SetParent(parentCanvas.transform, false); 
+                RectTransform rt = transitionScreenInstance.GetComponent<RectTransform>(); 
+                if (rt != null) 
                 {
                     rt.anchorMin = Vector2.zero;
                     rt.anchorMax = Vector2.one;
@@ -215,84 +252,38 @@ public class GameManager : MonoBehaviour
                     rt.anchoredPosition = Vector2.zero;
                 }
             }
+
+            // Tenta configurar o script da tela de transição se ele existir
+            DayTransitionUI transitionUI = transitionScreenInstance.GetComponent<DayTransitionUI>(); 
+            if (transitionUI != null) 
+            {
+                transitionUI.SetupTransition(currentDayIndex + 1, currentDayIndex + 2); 
+                yield return new WaitForSeconds(transitionUI.displayDuration); 
+            }
             else
             {
-                Debug.LogError("Nenhum Canvas encontrado na cena para a tela de transição!"); // NOVO
+                yield return new WaitForSeconds(3f); 
             }
 
-            DayTransitionUI transitionUI = transitionScreenInstance.GetComponent<DayTransitionUI>(); // NOVO
-            if (transitionUI != null) // NOVO
-            {
-                transitionUI.SetupTransition(currentDayIndex + 1, currentDayIndex + 2); // NOVO
-                yield return new WaitForSeconds(transitionUI.displayDuration); // NOVO
-            }
-            else
-            {
-                yield return new WaitForSeconds(3f); // Tempo padrão se o script DayTransitionUI não for encontrado
-            }
+            if (transitionScreenInstance != null) Destroy(transitionScreenInstance);
         }
         else
         {
-            yield return new WaitForSeconds(3f); // Tempo padrão se o prefab não for definido
+            yield return new WaitForSeconds(3f);
         }
 
-
-        // Destrói a tela de transição
-        if (transitionScreenInstance != null)
-        {
-            Destroy(transitionScreenInstance);
-        }
-
-        // Reativa a interface do jogo (se você a desativou)
-        // Exemplo: UIManager.Instance.ShowGameUI();
-
-        // Inicia o próximo dia
         StartNewDay(currentDayIndex + 1);
     }
 
-
-    // --- Métodos Públicos Chamados pela UI e Eventos ---
-
+    // --- Métodos Públicos para UI externa (caso precise) ---
     public void HandleTimeOut()
     {
-        Debug.Log("O tempo expirou! Processando recusa.");
+        Debug.Log("Tempo expirou!");
+        // Timeout conta como negar, mas sem ganhar ponto (ou pode tirar ponto se preferir)
         ProcessDecision(false);
     }
 
-    public void AcceptDocument()
-    {
-        Debug.Log("Documento ACEITO. Processando decisão.");
-        ProcessDecision(true);
-    }
-
-    public void RefuseDocument()
-    {
-        Debug.Log("Documento RECUSADO. Processando decisão.");
-        ProcessDecision(false);
-    }
-
-    void AoAceitar()
-    {
-        pontuacao += 1;
-        Debug.Log("Points: " + pontuacao);
-        AtualizarPontuacao();
-    }
-
-    void AoNegar()
-    {
-        pontuacao -= 1;
-        Debug.Log("Points: " + pontuacao);
-        AtualizarPontuacao();
-    }
-
-    void AoPassar()
-    {
-        Debug.Log("Passou para o proximo candidato!");
-        // Aqui entra a lógica quando o jogador passa
-    }
-
-    void AtualizarPontuacao()
-    {
-        pontuacaoText.text = "Points: " + pontuacao;
-    }
+    // Mantidos para compatibilidade caso algum botão antigo ainda chame estes métodos diretamente
+    public void AcceptDocument() => AoAceitar();
+    public void RefuseDocument() => AoNegar();
 }

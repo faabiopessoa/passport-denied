@@ -13,97 +13,144 @@ public class PassportController : MonoBehaviour
     public TextMeshProUGUI passportNameText;    
     public TextMeshProUGUI passportDobText;     
     public Image passportPhotoImage;          
-    public Image passportStampImage;
+    public Image passportStampImage; // A imagem onde o carimbo aparece
 
-    //Gabarito
-    [Header("Objetos do Gabarito")]
+    [Header("Gabarito (A Verdade)")]
     public GameObject gabaritoUIObject; 
-
-    [Header("Campos do Gabarito")]
     public TextMeshProUGUI gabaritoCountryText;
     public TextMeshProUGUI gabaritoNameText;
     public TextMeshProUGUI gabaritoDobText;
     public Image gabaritoPhotoImage;
 
-    [Header("Dados para Geração")]
-    private string[] countryNames = { "Arstotzka", "Kolechia", "Obristan", "United Federation", "Republic of Antegria" };
-    private string[] firstNames = { "Dimitri", "Jian", "Elena", "Mikhail", "Sofia" };
-    private string[] lastNames = { "Petrov", "Li", "Ivanov", "Chen", "Volkov" };
-
+    [Header("Dados")]
     public Sprite[] photoPool;
-    public Sprite[] stampPool;
+    
+    private string[] firstNames = { "Dimitri", "Jian", "Elena", "Mikhail", "Sofia", "Lukas", "Ana", "Viktor" };
+    private string[] lastNames = { "Petrov", "Li", "Ivanov", "Chen", "Volkov", "Silva", "Kozlov", "Muller" };
+
+    public bool IsCurrentPassportValid { get; private set; }
 
     void Start()
     {
-        passportClosedObject.GetComponent<Button>().onClick.AddListener(OpenPassport);
+        if(passportClosedObject.GetComponent<Button>() != null)
+            passportClosedObject.GetComponent<Button>().onClick.AddListener(OpenPassport);
 
         gabaritoUIObject.SetActive(false);
+        
+        // Garante que o selo comece invisível até gerar dados
+        if(passportStampImage != null) passportStampImage.gameObject.SetActive(false);
 
         GenerateNewStudent();
     }
 
     public void GenerateNewStudent()
     {
+        if (RuleManager.Instance == null)
+        {
+            Debug.LogError("ERRO CRÍTICO: RuleManager não encontrado na cena!");
+            return;
+        }
+
+        var rules = RuleManager.Instance.currentRules;
+        if(rules.Count == 0) return;
+
+        // --- 1. GERAR DADOS REAIS (Gabarito) ---
         string trueFirstName = firstNames[Random.Range(0, firstNames.Length)];
         string trueLastName = lastNames[Random.Range(0, lastNames.Length)];
-        string trueCountry = countryNames[Random.Range(0, countryNames.Length)];
+        string trueCountry = rules[Random.Range(0, rules.Count)].countryName;
+        
         int trueYear = Random.Range(1995, 2007);
         int trueMonth = Random.Range(1, 13);
         int trueDay = Random.Range(1, 29);
         Sprite truePhoto = photoPool[Random.Range(0, photoPool.Length)];
+
+        // Preenche UI Gabarito
+        if(gabaritoNameText) gabaritoNameText.text = "Nome: " + trueLastName + ", " + trueFirstName;
+        if(gabaritoDobText) gabaritoDobText.text = "Nasc: " + trueDay.ToString("D2") + "/" + trueMonth.ToString("D2") + "/" + trueYear;
+        if(gabaritoCountryText) gabaritoCountryText.text = "País: " + trueCountry;
+        if(gabaritoPhotoImage) gabaritoPhotoImage.sprite = truePhoto;
+
+        // --- 2. GERAR DADOS DO PASSAPORTE ---
+        string passFirstName = trueFirstName;
+        string passLastName = trueLastName;
+        string passCountry = trueCountry;
+        string passDob = trueDay.ToString("D2") + "/" + trueMonth.ToString("D2") + "/" + trueYear;
+        Sprite passPhoto = truePhoto;
+
+        bool hasDataError = false; 
+
+        // Sorteio de erros (15% chance cada)
+        if (Random.value < 0.15f) 
+        {
+            passFirstName = firstNames[Random.Range(0, firstNames.Length)];
+            hasDataError = true;
+        }
+        else if (Random.value < 0.15f) 
+        {
+            passCountry = rules[Random.Range(0, rules.Count)].countryName;
+            if (passCountry != trueCountry) hasDataError = true;
+        }
+        else if (Random.value < 0.15f) 
+        {
+            passDob = trueDay.ToString("D2") + "/" + trueMonth.ToString("D2") + "/" + (trueYear - 5);
+            hasDataError = true;
+        }
+
+        // --- 3. ATUALIZAR UI PASSAPORTE ---
+        if(passportNameText) passportNameText.text = passLastName + ", " + passFirstName;
+        if(passportCountryText) passportCountryText.text = passCountry;
+        if(passportDobText) passportDobText.text = passDob;
+        if(passportPhotoImage) passportPhotoImage.sprite = passPhoto;
+
+        // --- LÓGICA DO SELO (Debugada) ---
+        if (passportStampImage != null)
+        {
+            // Busca o sprite no RuleManager
+            Sprite stamp = RuleManager.Instance.GetSealSprite(passCountry);
+
+            if (stamp != null)
+            {
+                passportStampImage.sprite = stamp;
+                passportStampImage.color = Color.white; // FORÇA A COR BRANCA (CASO ESTEJA TRANSPARENTE)
+                passportStampImage.preserveAspect = true; // EVITA DISTORÇÃO
+                passportStampImage.gameObject.SetActive(true);
+                
+                // Debug para confirmar que achou
+                // Debug.Log($"Selo aplicado: {passCountry}"); 
+            }
+            else
+            {
+                Debug.LogWarning($"AVISO: O Sprite do selo para '{passCountry}' retornou NULL. Verifique o RuleManager.");
+                passportStampImage.gameObject.SetActive(false);
+            }
+        }
+        else
+        {
+            Debug.LogError("ERRO: O campo 'Passport Stamp Image' não está linkado no Inspector!");
+        }
+
+        // --- 4. VERIFICAÇÃO FINAL ---
+        bool isCountryApproved = RuleManager.Instance.IsCountryApproved(passCountry);
+
+        if (!hasDataError && isCountryApproved) IsCurrentPassportValid = true;
+        else IsCurrentPassportValid = false;
         
-        gabaritoNameText.text = "Nome: " + trueLastName + ", " + trueFirstName;
-        gabaritoDobText.text = "Nasc: " + trueDay.ToString("D2") + "/" + trueMonth.ToString("D2") + "/" + trueYear;
-        gabaritoCountryText.text = "País: " + trueCountry;
-        gabaritoPhotoImage.sprite = truePhoto;
-
-        string passportFirstName = trueFirstName;
-        string passportLastName = trueLastName;
-        string passportCountry = trueCountry;
-        string passportDob = trueDay.ToString("D2") + "/" + trueMonth.ToString("D2") + "/" + trueYear;
-        Sprite passportPhoto = truePhoto;
-
-        if (Random.value < 0.15f) // Chance de 15%
-        {
-            passportFirstName = firstNames[Random.Range(0, firstNames.Length)];
-            Debug.Log("FALSIFICAÇÃO GERADA: Nome incorreto.");
-        }
-        if (Random.value < 0.15f) // Chance de 15%
-        {
-            passportCountry = countryNames[Random.Range(0, countryNames.Length)];
-            Debug.Log("FALSIFICAÇÃO GERADA: País incorreto.");
-        }
-        if (Random.value < 0.15f) // Chance de 15%
-        {
-            passportDob = (trueDay).ToString("D2") + "/" + (trueMonth).ToString("D2") + "/" + (trueYear - 1);
-            Debug.Log("FALSIFICAÇÃO GERADA: Data de Nascimento incorreta.");
-        }
-        // if (Random.value < 0.15f) // Chance de 15%
-        // {
-        //     passportPhoto = photoPool[Random.Range(0, photoPool.Length)];
-        //     Debug.Log("FALSIFICAÇÃO GERADA: Foto incorreta.");
-        // }
-
-        passportNameText.text = passportLastName + ", " + passportFirstName;
-        passportCountryText.text = passportCountry;
-        passportDobText.text = passportDob;
-        passportPhotoImage.sprite = passportPhoto;
+        Debug.Log($"Passaporte Gerado: {passCountry} | ErroDados: {hasDataError} | Aprovado: {isCountryApproved} -> Válido: {IsCurrentPassportValid}");
     }
 
-    public void ToggleGabarito()
+    public void ToggleGabarito() 
     {
-        gabaritoUIObject.SetActive(!gabaritoUIObject.activeSelf);
+        if(gabaritoUIObject) gabaritoUIObject.SetActive(!gabaritoUIObject.activeSelf);
     }
-
+    
     public void OpenPassport()
     {
-        passportClosedObject.SetActive(false); 
-        passportOpenObject.SetActive(true);    
+        if(passportClosedObject) passportClosedObject.SetActive(false); 
+        if(passportOpenObject) passportOpenObject.SetActive(true);    
     }
-
     public void ClosePassport()
     {
-        passportClosedObject.SetActive(true);   
-        passportOpenObject.SetActive(false);  
+        if(passportClosedObject) passportClosedObject.SetActive(true);   
+        if(passportOpenObject) passportOpenObject.SetActive(false);  
     }
 }
