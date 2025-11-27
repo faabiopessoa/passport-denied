@@ -1,33 +1,127 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using System.Collections;
+
 public class MusicManager : MonoBehaviour
 {
-    [Header("Configurações de Música")]
-    public AudioSource audioSource;
-    public float targetVolume = 0.05f; // volume final da música
-    public float fadeDuration = 3f;   // duração do fade-in em segundos
+    public static MusicManager Instance;
+
+    [Header("Áudios das cenas")]
+    public AudioClip menuMusic;
+    public AudioClip officeMusic;
+
+    [Header("Volumes Globais")]
+    [Range(0f, 1f)] public float musicVolume = 0.5f;
+    [Range(0f, 1f)] public float sfxVolume = 1f;
+
+    [Header("Configurações")]
+    public AudioSource musicSource;
+    public AudioSource sfxSource;  // agora temos um canal separado!
+    public float fadeDuration = 2f;
+
+    private string lastScene = "";
+
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+
+            if (musicSource == null)
+                musicSource = GetComponent<AudioSource>();
+
+            SceneManager.activeSceneChanged += OnSceneChanged;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
 
     void Start()
     {
-        if (audioSource == null)
-            audioSource = GetComponent<AudioSource>();
-
-        audioSource.volume = 0f;      // começa no mudo
-        audioSource.loop = true;      // toca infinitamente
-        audioSource.Play();           // inicia o som
-        StartCoroutine(FadeIn());     // inicia o fade suave
+        LoadSettings();
+        OnSceneChanged(default, SceneManager.GetActiveScene());
     }
 
-    IEnumerator FadeIn()
+    void OnSceneChanged(Scene oldScene, Scene newScene)
     {
-        float time = 0f;
-        while (time < fadeDuration)
+        string sceneName = newScene.name;
+
+        if (sceneName == lastScene) return;
+        lastScene = sceneName;
+
+        if (sceneName == "MenuInicial")
+            PlayMusic(menuMusic);
+        else if (sceneName == "SampleScene 1")
+            PlayMusic(officeMusic);
+    }
+
+    public void PlayMusic(AudioClip clip)
+    {
+        if (clip == null) return;
+        StopAllCoroutines();
+        StartCoroutine(FadeToClip(clip));
+    }
+
+    IEnumerator FadeToClip(AudioClip newClip)
+    {
+        float startVol = musicSource.volume;
+
+        // Fade Out
+        for (float t = 0; t < fadeDuration; t += Time.deltaTime)
         {
-            time += Time.deltaTime;
-            audioSource.volume = Mathf.Lerp(0f, targetVolume, time / fadeDuration);
+            musicSource.volume = Mathf.Lerp(startVol, 0f, t / fadeDuration);
             yield return null;
         }
 
-        audioSource.volume = targetVolume; // garante o volume final exato
+        musicSource.clip = newClip;
+        musicSource.Play();
+
+        // Fade In
+        for (float t = 0; t < fadeDuration; t += Time.deltaTime)
+        {
+            musicSource.volume = Mathf.Lerp(0f, musicVolume, t / fadeDuration);
+            yield return null;
+        }
+
+        musicSource.volume = musicVolume;
+    }
+
+    // FORA DE QUALQUER MÉTODO:
+    public void SetMusicVolume(float v)
+    {
+        musicVolume = v;
+        musicSource.volume = v;
+        PlayerPrefs.SetFloat("MusicVolume", v);
+    }
+
+    public void SetSFXVolume(float v)
+    {
+        sfxVolume = v;
+        sfxSource.volume = v;
+        PlayerPrefs.SetFloat("SFXVolume", v);
+    }
+
+    public void LoadSettings()
+    {
+        if (PlayerPrefs.HasKey("MusicVolume"))
+        {
+            musicVolume = PlayerPrefs.GetFloat("MusicVolume");
+            musicSource.volume = musicVolume;
+        }
+
+        if (PlayerPrefs.HasKey("SFXVolume"))
+        {
+            sfxVolume = PlayerPrefs.GetFloat("SFXVolume");
+            sfxSource.volume = sfxVolume;
+        }
+    }
+
+    public void PlaySFX(AudioClip clip)
+    {
+        if (clip == null) return;
+        sfxSource.PlayOneShot(clip, sfxVolume);
     }
 }
