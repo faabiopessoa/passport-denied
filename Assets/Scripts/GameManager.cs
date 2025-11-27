@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections; // Necessário para Coroutines
 using System.Collections.Generic; // Necessário para List
+using TMPro; // Necessário para TextMeshPro
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -30,6 +32,12 @@ public class GameManager : MonoBehaviour
     private int currentDayIndex = 0; // NOVO: Índice do dia atual na lista dayConfigurations
     private int charactersProcessedToday = 0; // NOVO: Contador de personagens processados no dia
     private DayConfig currentDayConfig; // NOVO: A configuração do dia atual
+    public Button botaoAceitar;
+    public Button botaoNegar;
+    public Button botaoPassar;
+    public TextMeshProUGUI pontuacaoText; 
+
+    private int pontuacao = 0;
 
     private void Awake()
     {
@@ -54,6 +62,10 @@ public class GameManager : MonoBehaviour
 
         // Inicia o jogo no primeiro dia.
         StartNewDay(0); // ALTERADO: Começa com o índice 0 (primeiro dia)
+        botaoAceitar.onClick.AddListener(AoAceitar);
+        botaoNegar.onClick.AddListener(AoNegar);
+        botaoPassar.onClick.AddListener(AoPassar);
+        AtualizarPontuacao();
     }
 
     /// <summary>
@@ -257,5 +269,30 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("Documento RECUSADO. Processando decisão.");
         ProcessDecision(false);
+    }
+
+    void AoAceitar()
+    {
+        pontuacao += 1;
+        Debug.Log("Points: " + pontuacao);
+        AtualizarPontuacao();
+    }
+
+    void AoNegar()
+    {
+        pontuacao -= 1;
+        Debug.Log("Points: " + pontuacao);
+        AtualizarPontuacao();
+    }
+
+    void AoPassar()
+    {
+        Debug.Log("Passou para o proximo candidato!");
+        // Aqui entra a lógica quando o jogador passa
+    }
+
+    void AtualizarPontuacao()
+    {
+        pontuacaoText.text = "Points: " + pontuacao;
     }
 }
