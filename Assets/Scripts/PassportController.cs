@@ -1,21 +1,31 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; 
+using TMPro;
 
 public class PassportController : MonoBehaviour
 {
-    [Header("UI Objects")]
+    [Header("Objetos do Passaporte")]
     public GameObject passportClosedObject;
     public GameObject passportOpenObject;
 
-    [Header("Open Passport Fields")]
-    public TextMeshProUGUI countryText;
-    public TextMeshProUGUI nameText;
-    public TextMeshProUGUI dobText;
-    public Image photoImage;
-    public Image stampImage;
+    [Header("Campos do Passaporte (Aberto)")]
+    public TextMeshProUGUI passportCountryText; 
+    public TextMeshProUGUI passportNameText;    
+    public TextMeshProUGUI passportDobText;     
+    public Image passportPhotoImage;          
+    public Image passportStampImage;
 
-    [Header("Data Pools")]
+    //Gabarito
+    [Header("Objetos do Gabarito")]
+    public GameObject gabaritoUIObject; 
+
+    [Header("Campos do Gabarito")]
+    public TextMeshProUGUI gabaritoCountryText;
+    public TextMeshProUGUI gabaritoNameText;
+    public TextMeshProUGUI gabaritoDobText;
+    public Image gabaritoPhotoImage;
+
+    [Header("Dados para Geração")]
     private string[] countryNames = { "Arstotzka", "Kolechia", "Obristan", "United Federation", "Republic of Antegria" };
     private string[] firstNames = { "Dimitri", "Jian", "Elena", "Mikhail", "Sofia" };
     private string[] lastNames = { "Petrov", "Li", "Ivanov", "Chen", "Volkov" };
@@ -27,35 +37,62 @@ public class PassportController : MonoBehaviour
     {
         passportClosedObject.GetComponent<Button>().onClick.AddListener(OpenPassport);
 
-        GenerateNewPassport();
+        gabaritoUIObject.SetActive(false);
+
+        GenerateNewStudent();
     }
 
-    public void GenerateNewPassport()
+    public void GenerateNewStudent()
     {
-        string country = countryNames[Random.Range(0, countryNames.Length)];
-        string firstName = firstNames[Random.Range(0, firstNames.Length)];
-        string lastName = lastNames[Random.Range(0, lastNames.Length)];
+        string trueFirstName = firstNames[Random.Range(0, firstNames.Length)];
+        string trueLastName = lastNames[Random.Range(0, lastNames.Length)];
+        string trueCountry = countryNames[Random.Range(0, countryNames.Length)];
+        int trueYear = Random.Range(1995, 2007);
+        int trueMonth = Random.Range(1, 13);
+        int trueDay = Random.Range(1, 29);
+        Sprite truePhoto = photoPool[Random.Range(0, photoPool.Length)];
         
-        int year = Random.Range(1995, 2007);
-        int month = Random.Range(1, 13);
-        int day = Random.Range(1, 29);
+        gabaritoNameText.text = "Nome: " + trueLastName + ", " + trueFirstName;
+        gabaritoDobText.text = "Nasc: " + trueDay.ToString("D2") + "/" + trueMonth.ToString("D2") + "/" + trueYear;
+        gabaritoCountryText.text = "País: " + trueCountry;
+        gabaritoPhotoImage.sprite = truePhoto;
 
-        countryText.text = country;
-        nameText.text = lastName + ", " + firstName;
-        dobText.text = day.ToString("D2") + "/" + month.ToString("D2") + "/" + year;
+        string passportFirstName = trueFirstName;
+        string passportLastName = trueLastName;
+        string passportCountry = trueCountry;
+        string passportDob = trueDay.ToString("D2") + "/" + trueMonth.ToString("D2") + "/" + trueYear;
+        Sprite passportPhoto = truePhoto;
 
-        photoImage.sprite = photoPool[Random.Range(0, photoPool.Length)];
-
-        // bool hasStamp = Random.Range(0, 2) == 0;
-        // if (hasStamp)
+        if (Random.value < 0.15f) // Chance de 15%
+        {
+            passportFirstName = firstNames[Random.Range(0, firstNames.Length)];
+            Debug.Log("FALSIFICAÇÃO GERADA: Nome incorreto.");
+        }
+        if (Random.value < 0.15f) // Chance de 15%
+        {
+            passportCountry = countryNames[Random.Range(0, countryNames.Length)];
+            Debug.Log("FALSIFICAÇÃO GERADA: País incorreto.");
+        }
+        if (Random.value < 0.15f) // Chance de 15%
+        {
+            passportDob = (trueDay).ToString("D2") + "/" + (trueMonth).ToString("D2") + "/" + (trueYear - 1);
+            Debug.Log("FALSIFICAÇÃO GERADA: Data de Nascimento incorreta.");
+        }
+        // if (Random.value < 0.15f) // Chance de 15%
         // {
-        //     stampImage.gameObject.SetActive(true); // Show the stamp
-        //     stampImage.sprite = stampPool[Random.Range(0, stampPool.Length)];
+        //     passportPhoto = photoPool[Random.Range(0, photoPool.Length)];
+        //     Debug.Log("FALSIFICAÇÃO GERADA: Foto incorreta.");
         // }
-        // else
-        // {
-        //     stampImage.gameObject.SetActive(false); // Hide the stamp
-        // }
+
+        passportNameText.text = passportLastName + ", " + passportFirstName;
+        passportCountryText.text = passportCountry;
+        passportDobText.text = passportDob;
+        passportPhotoImage.sprite = passportPhoto;
+    }
+
+    public void ToggleGabarito()
+    {
+        gabaritoUIObject.SetActive(!gabaritoUIObject.activeSelf);
     }
 
     public void OpenPassport()

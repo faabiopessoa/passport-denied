@@ -7,16 +7,32 @@ public class CountdownHUD : MonoBehaviour
     [Header("Configuração")]
     [Tooltip("Duração inicial do atendimento, em segundos. Valor padrão.")]
     public float defaultStartSeconds = 90f; // Mudou para defaultStartSeconds
+    [Tooltip("Duração inicial do atendimento, em segundos.")]
+    public float startSeconds = 90f;
+
+    [Tooltip("Segundos restantes para iniciar o alerta sonoro e visual.")]
+    public float alertThreshold = 8f;
+
+    private float _currentServiceDuration; // Armazena a duração do serviço para o personagem atual
 
     [Header("Referências")]
     public TextMeshProUGUI timeText;
+    [Tooltip("Fonte de áudio que tocará o alerta.")]
+    public AudioSource alertSource;
+    [Tooltip("Som de alerta (8 segundos de duração).")]
+    public AudioClip alertClip;
 
     [Header("Eventos")]
     public UnityEvent onTimerEnd;
 
     private float _timeLeft;
     private bool _running;
-    private float _currentServiceDuration; // Armazena a duração do serviço para o personagem atual
+    private bool _alertPlaying;
+    private bool _isFlashing;
+
+    private Color _defaultColor = Color.white;
+    private Color _alertColor = new Color(1f, 0.25f, 0.25f); // vermelho claro
+    private float _flashSpeed = 5f; // velocidade do piscar
 
     void Start()
     {
@@ -30,16 +46,31 @@ public class CountdownHUD : MonoBehaviour
         if (!_running) return;
 
         _timeLeft -= Time.deltaTime;
-        if (_timeLeft < 0f)
+
+        // Inicia alerta sonoro e visual
+        if (_timeLeft <= alertThreshold && !_alertPlaying && _timeLeft > 0)
+        {
+            PlayAlert();
+            StartFlashing();
+        }
+
+        // Quando o tempo acaba
+        if (_timeLeft <= 0f)
         {
             _timeLeft = 0f;
             _running = false;
+            StopAlert();
+            StopFlashing();
             UpdateLabel();
             onTimerEnd?.Invoke();
             return;
         }
 
         UpdateLabel();
+
+        // Atualiza a cor se estiver piscando
+        if (_isFlashing)
+            UpdateFlashEffect();
     }
 
     public void StartTimer()
@@ -50,22 +81,65 @@ public class CountdownHUD : MonoBehaviour
     public void PauseTimer()
     {
         _running = false;
+        StopAlert();
+        StopFlashing();
     }
 
-    public void ResetTimer()
-    {
-        _timeLeft = Mathf.Max(0f, _currentServiceDuration); // Usa a duração configurada
-    }
-
-    /// <summary>
-    /// Define a duração do timer para o próximo personagem.
-    /// Chamado pelo GameManager ao iniciar um novo dia ou personagem.
-    /// </summary>
     public void SetStartSeconds(float newDuration)
     {
         _currentServiceDuration = newDuration;
         ResetTimer(); // Reseta o timer com a nova duração
         // O timer não é iniciado automaticamente aqui, o GameManager fará isso.
+    }
+
+    public void ResetTimer()
+    {
+        // _timeLeft = Mathf.Max(0f, startSeconds);
+        _timeLeft = Mathf.Max(0f, _currentServiceDuration);
+        StopAlert();
+        StopFlashing();
+        if (timeText != null)
+            timeText.color = _defaultColor;
+    }
+
+    private void PlayAlert()
+    {
+        if (alertSource != null && alertClip != null)
+        {
+            alertSource.clip = alertClip;
+            alertSource.loop = false; // som tem 8s
+            alertSource.Play();
+            _alertPlaying = true;
+        }
+    }
+
+    private void StopAlert()
+    {
+        if (alertSource != null && alertSource.isPlaying)
+            alertSource.Stop();
+
+        _alertPlaying = false;
+    }
+
+    private void StartFlashing()
+    {
+        _isFlashing = true;
+    }
+
+    private void StopFlashing()
+    {
+        _isFlashing = false;
+        if (timeText != null)
+            timeText.color = _defaultColor;
+    }
+
+    private void UpdateFlashEffect()
+    {
+        if (timeText == null) return;
+
+        // alterna suavemente entre as cores
+        float t = Mathf.PingPong(Time.time * _flashSpeed, 1f);
+        timeText.color = Color.Lerp(_defaultColor, _alertColor, t);
     }
 
     private void UpdateLabel()
