@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: Day2Config
   m_EditorClassIdentifier: Assembly-CSharp::DayConfig
   numberOfCharacters: 2
-  characterServiceDuration: 10
+  characterServiceDuration: 25
   delayBetweenCharacters: 4
