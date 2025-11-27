@@ -1,35 +1,28 @@
 using UnityEngine;
-using System.Collections; // Necessário para Coroutines
+using System.Collections;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [Header("Referências de Prefabs e Cena")]
-    [Tooltip("O Prefab do personagem que será instanciado.")]
+    [Header("Referências")]
     public GameObject characterPrefab;
-    [Tooltip("O local onde os novos personagens irão surgir.")]
     public Transform characterSpawnPoint;
-    [Tooltip("A referência para o script do HUD do contador.")]
     public CountdownHUD countdownHUD;
+    
+    // Referência nova para poder validar
+    public PassportController passportController; 
 
-    [Header("Configurações de Gameplay")]
-    [Tooltip("O tempo em segundos a esperar antes de gerar um novo personagem após o anterior sair.")]
+    [Header("Configurações")]
     public float delayBetweenCharacters = 4f;
 
     private CharacterController currentCharacter;
-    private bool isTransitioning = false; // Evitar ações múltiplas durante transições
+    private bool isTransitioning = false;
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(this.gameObject);
-        }
-        else
-        {
-            Instance = this;
-        }
+        if (Instance != null && Instance != this) Destroy(gameObject);
+        else Instance = this;
     }
 
     private void Start()
@@ -39,43 +32,33 @@ public class GameManager : MonoBehaviour
 
     public void StartNewDay()
     {
-        Debug.Log("Novo dia começando!");
-        // Inicio do ciclo de personagens
         StartCoroutine(NextCharacterRoutine());
     }
 
-    /// <summary>
-    /// A rotina principal que gerencia a transição entre personagens.
-    /// </summary>
     private IEnumerator NextCharacterRoutine()
     {
-        // 1. Espera um tempo antes de gerar o próximo (útil entre personagens).
         yield return new WaitForSeconds(delayBetweenCharacters);
 
-        // 2. Destrói o personagem anterior, se ele existir.
-        if (currentCharacter != null)
-        {
-            Destroy(currentCharacter.gameObject);
-        }
+        if (currentCharacter != null) Destroy(currentCharacter.gameObject);
 
-        // 3. Spawna um novo personagem.
         SpawnNewCharacter();
         isTransitioning = false;
     }
 
     public void SpawnNewCharacter()
     {
-        if (characterPrefab == null || characterSpawnPoint == null)
-        {
-            Debug.LogError("Prefab do Personagem ou Ponto de Spawn não foram definidos no GameManager!");
-            return;
-        }
+        if (characterPrefab == null || characterSpawnPoint == null) return;
 
-        // Instancia o prefab no local de spawn.
         GameObject newCharObject = Instantiate(characterPrefab, characterSpawnPoint.position, Quaternion.identity);
         currentCharacter = newCharObject.GetComponent<CharacterController>();
 
-        // Reseta e inicia o timer para o novo personagem.
+        // Gera um novo passaporte para essa nova pessoa
+        if (passportController != null)
+        {
+            passportController.ClosePassport(); // Reseta visual
+            passportController.GenerateNewStudent();
+        }
+
         if (countdownHUD != null)
         {
             countdownHUD.ResetTimer();
@@ -83,41 +66,43 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Método centralizado para processar uma decisão (Aceitar, Recusar, Timeout).
-    /// </summary>
-    private void ProcessDecision(bool wasApproved)
+    // --- LÓGICA DE DECISÃO ---
+
+    // wasApprovedByPlayer: TRUE se clicou no botão verde, FALSE se clicou no vermelho/timeout
+    private void ProcessDecision(bool wasApprovedByPlayer)
     {
-        // Se já estamos em transição, ignora cliques repetidos.
         if (isTransitioning) return;
-        isTransitioning = true; // Ativa a trava
+        isTransitioning = true;
 
-        if (currentCharacter == null) return;
+        if (passportController != null)
+        {
+            bool isActuallyValid = passportController.IsCurrentPassportValid;
 
-        countdownHUD.PauseTimer();
-        currentCharacter.StartExitSequence(wasApproved);
+            // Verifica se o jogador acertou
+            if (wasApprovedByPlayer == isActuallyValid)
+            {
+                Debug.Log("<color=cyan>SUCESSO! O jogador acertou a decisão.</color>");
+                // Aqui você pode: Adicionar Dinheiro, Pontos, Tocar som de Sucesso
+            }
+            else
+            {
+                Debug.Log("<color=magenta>ERRO! O jogador errou.</color>");
+                // Aqui você pode: Tirar Vidas, Multa, Tocar som de Erro
+            }
+        }
 
-        // Inicia a rotina para trazer o próximo personagem.
+        // Animação de saída do personagem
+        if (currentCharacter != null)
+        {
+            countdownHUD.PauseTimer();
+            currentCharacter.StartExitSequence(wasApprovedByPlayer);
+        }
+
         StartCoroutine(NextCharacterRoutine());
     }
 
-    // --- Métodos Públicos Chamados pela UI e Eventos ---
-
-    public void HandleTimeOut()
-    {
-        Debug.Log("O tempo expirou! Processando recusa.");
-        ProcessDecision(false);
-    }
-
-    public void AcceptDocument()
-    {
-        Debug.Log("Documento ACEITO. Processando decisão.");
-        ProcessDecision(true);
-    }
-
-    public void RefuseDocument()
-    {
-        Debug.Log("Documento RECUSADO. Processando decisão.");
-        ProcessDecision(false);
-    }
+    // Botões da UI chamam isso:
+    public void HandleTimeOut() => ProcessDecision(false); // Timeout conta como recusa?
+    public void AcceptDocument() => ProcessDecision(true);
+    public void RefuseDocument() => ProcessDecision(false);
 }

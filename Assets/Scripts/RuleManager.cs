@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 
 [System.Serializable]
 public class SealRule
@@ -11,25 +10,34 @@ public class SealRule
 
 public class RuleManager : MonoBehaviour
 {
+    public static RuleManager Instance; // Singleton para acesso fácil
+
     [Header("Configuração de Regras")]
     public List<SealRule> currentRules = new List<SealRule>();
     public int currentDay = 1;
-    private int lastGeneratedDay = -1; // 🔹 guarda o último dia que gerou as regras
+    private int lastGeneratedDay = -1;
 
-    private string[] countries = { "Vastan", "Belgravia", "Zharim", "San Ibero", "Norhalm", "Ostyrra" };
+    // A ordem aqui deve bater com a ordem das Sprites no Inspector
+    public string[] availableCountries = { "Vastan", "Belgravia", "Zharim", "San Ibero", "Norhalm", "Ostyrra" };
+    
+    [Header("Assets Visuais")]
+    [Tooltip("Arraste os sprites na mesma ordem dos nomes acima")]
+    public List<Sprite> sealSprites; 
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+    }
 
     void Start()
     {
-        GenerateRules(); // gera apenas no primeiro dia
+        GenerateRules();
     }
 
     public void OnDayChanged(int newDay)
     {
-        // Atualiza o dia atual antes de gerar novas regras
         currentDay = newDay;
-
-
-        // Se for um novo dia (não o mesmo de antes)
         if (currentDay != lastGeneratedDay)
         {
             GenerateRules();
@@ -40,12 +48,10 @@ public class RuleManager : MonoBehaviour
     public void GenerateRules()
     {
         currentRules.Clear();
-
-        string[] countries = { "Vastan", "Belgravia", "Zharim", "San Ibero", "Norhalm", "Ostyrra" };
         int totalApproved = 0;
 
-        // 1️⃣ Gera tudo de forma aleatória
-        foreach (string c in countries)
+        // 1. Gera status aleatório
+        foreach (string c in availableCountries)
         {
             bool approved = Random.value > 0.5f;
             if (approved) totalApproved++;
@@ -57,25 +63,61 @@ public class RuleManager : MonoBehaviour
             });
         }
 
-        // 2️⃣ Garante que pelo menos 3 estejam aprovados
+        // 2. Garante mínimo de 3 aprovados
         if (totalApproved < 3)
         {
-            // Embaralha os países
-            for (int i = currentRules.Count - 1; i > 0; i--)
-            {
-                int j = Random.Range(0, i + 1);
-                var temp = currentRules[i];
-                currentRules[i] = currentRules[j];
-                currentRules[j] = temp;
-            }
+            // Embaralha lista para não viciar a correção
+            ShuffleRules(currentRules);
 
-            // Corrige aprovados até ter 3
-            int toApprove = 3 - totalApproved;
-            for (int i = 0; i < toApprove; i++)
+            // Força aprovação até ter 3
+            int approvedCount = currentRules.FindAll(x => x.isApproved).Count;
+            for (int i = 0; i < currentRules.Count; i++)
             {
-                currentRules[i].isApproved = true;
+                if (approvedCount >= 3) break;
+                if (!currentRules[i].isApproved)
+                {
+                    currentRules[i].isApproved = true;
+                    approvedCount++;
+                }
             }
         }
+        
+        // (Opcional) Reordenar alfabeticamente ou manter embaralhado
+    }
 
+    // Função auxiliar para embaralhar lista
+    private void ShuffleRules(List<SealRule> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            var temp = list[i];
+            list[i] = list[j];
+            list[j] = temp;
+        }
+    }
+
+    // --- Métodos Públicos para o Passaporte ---
+
+    public bool IsCountryApproved(string countryName)
+    {
+        foreach (var rule in currentRules)
+        {
+            if (rule.countryName == countryName) return rule.isApproved;
+        }
+        return false;
+    }
+
+    public Sprite GetSealSprite(string countryName)
+    {
+        // Procura o índice do nome no array original e retorna o sprite correspondente
+        for (int i = 0; i < availableCountries.Length; i++)
+        {
+            if (availableCountries[i] == countryName)
+            {
+                if (i < sealSprites.Count) return sealSprites[i];
+            }
+        }
+        return null;
     }
 }
