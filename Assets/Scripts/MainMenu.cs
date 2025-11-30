@@ -8,7 +8,7 @@ public class MainMenu : MonoBehaviour
 
     [Header("Config")]
     [Tooltip("Nome da cena principal do jogo")]
-    public string gameSceneName = "SampleScene";
+    public string gameSceneName = "Cena Principal Final";
 
     public void PlayGame()
     {

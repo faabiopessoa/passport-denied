@@ -54,7 +54,7 @@ public class MusicManager : MonoBehaviour
 
         if (sceneName == "MenuInicial")
             PlayMusic(menuMusic);
-        else if (sceneName == "SampleScene 1")
+        else if (sceneName == "Cena Principal Final")
             PlayMusic(officeMusic);
     }
 
