@@ -578,7 +578,7 @@ Animator:
   m_GameObject: {fileID: 623310460}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: d1581ad5ff9fa164097d3bce50a540ab, type: 2}
+  m_Controller: {fileID: 9100000, guid: fd5ce4724968147489e68dee676b8e4c, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -672,13 +672,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 623310460}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 31df80d9fc0a0da4a92020ab7bb7747e, type: 3}
+  m_Script: {fileID: 11500000, guid: 5b2f0052f55fb2341a0c516fdd022561, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AutoTalk
+  m_EditorClassIdentifier: Assembly-CSharp::AutoTalkFinal3
   animator: {fileID: 623310461}
   speechText: {fileID: 1803093061}
-  frase: "oi meu nome \xE9 goku"
+  frase: 
   duracao: 3
+  win: 0
 --- !u!1 &1803093059
 GameObject:
   m_ObjectHideFlags: 0
@@ -706,14 +707,14 @@ RectTransform:
   m_GameObject: {fileID: 1803093059}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 246274171}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 39, y: -175}
+  m_AnchoredPosition: {x: 100, y: -352}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1803093061

@@ -1,12 +1,11 @@
 using UnityEngine;
 using TMPro; 
-using UnityEngine.SceneManagement;
 
-public class AutoTalk : MonoBehaviour
+public class AutoTalkFinal2 : MonoBehaviour
 {
     public Animator animator;       
     public TMP_Text speechText;     
-    public string frase = "Voce tem um objetivo conclua os dias para que voce seja promovido!";
+    public string frase = "oi meu nome é goku";
     public float duracao = 3f;      
 
     private void Start()
@@ -30,7 +29,6 @@ public class AutoTalk : MonoBehaviour
         animator.SetBool("isTalking", false);
 
         // limpa ou deixa a frase (você escolhe)
-        speechText.text = "Voce tem um objetivo conclua os dias para que voce seja promovido!";
-        SceneManager.LoadScene("Cena Principal Final");
+        speechText.text = "Oi meu nome é goku";
     }
 }
