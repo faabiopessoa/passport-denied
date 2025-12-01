@@ -25,6 +25,10 @@ public class PassportController : MonoBehaviour
     [Header("Dados")]
     public Sprite[] photoPool;
     
+    [Header("Áudio")] // --- NOVO ---
+    public AudioSource audioSource; // --- NOVO ---
+    public AudioClip passportSound; // --- NOVO: Som de abrir/fechar passaporte
+
     private string[] firstNames = { "Dimitri", "Jian", "Elena", "Mikhail", "Sofia", "Lukas", "Ana", "Viktor" };
     private string[] lastNames = { "Petrov", "Li", "Ivanov", "Chen", "Volkov", "Silva", "Kozlov", "Muller" };
 
@@ -114,9 +118,6 @@ public class PassportController : MonoBehaviour
                 passportStampImage.color = Color.white; // FORÇA A COR BRANCA (CASO ESTEJA TRANSPARENTE)
                 passportStampImage.preserveAspect = true; // EVITA DISTORÇÃO
                 passportStampImage.gameObject.SetActive(true);
-                
-                // Debug para confirmar que achou
-                // Debug.Log($"Selo aplicado: {passCountry}"); 
             }
             else
             {
@@ -146,11 +147,20 @@ public class PassportController : MonoBehaviour
     public void OpenPassport()
     {
         if(passportClosedObject) passportClosedObject.SetActive(false); 
-        if(passportOpenObject) passportOpenObject.SetActive(true);    
+        if(passportOpenObject) passportOpenObject.SetActive(true);
+
+        // --- NOVO: Toca som ao abrir ---
+        if (audioSource != null && passportSound != null)
+            audioSource.PlayOneShot(passportSound);
     }
+
     public void ClosePassport()
     {
         if(passportClosedObject) passportClosedObject.SetActive(true);   
-        if(passportOpenObject) passportOpenObject.SetActive(false);  
+        if(passportOpenObject) passportOpenObject.SetActive(false);
+
+        // --- NOVO: Toca som ao fechar ---
+        if (audioSource != null && passportSound != null)
+            audioSource.PlayOneShot(passportSound);
     }
 }

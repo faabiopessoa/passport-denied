@@ -5286,6 +5286,9 @@ MonoBehaviour:
   botaoNegar: {fileID: 1015959125}
   botaoPassar: {fileID: 419477357}
   pontuacaoText: {fileID: 578086253}
+  audioSource: {fileID: 965493208}
+  stampApprovedSound: {fileID: 8300000, guid: 009499af5cefbbc4b80553482d130443, type: 3}
+  stampDeniedSound: {fileID: 8300000, guid: d86e519590946524598bab03929c70f8, type: 3}
 --- !u!4 &1097201367
 Transform:
   m_ObjectHideFlags: 0
@@ -5918,6 +5921,8 @@ MonoBehaviour:
   gabaritoPhotoImage: {fileID: 899192233}
   photoPool:
   - {fileID: 7340344100626675433, guid: af08fa35ffc5f2a4fb5bbfe7f9445949, type: 3}
+  audioSource: {fileID: 965493208}
+  passportSound: {fileID: 8300000, guid: b526a60c671c5fe438c7f3b95743c0c2, type: 3}
 --- !u!114 &1458178895
 MonoBehaviour:
   m_ObjectHideFlags: 0

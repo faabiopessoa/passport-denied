@@ -19,14 +19,17 @@ public class GameManager : MonoBehaviour
     public GameObject transitionScreenPrefab;
 
     [Header("Referências de UI e Controle")]
-    // IMPORTANTE: Arraste o objeto que tem o script PassportController aqui no Inspector
     public PassportController passportController; 
     
-    // Botões que agora estão na cena principal
     public Button botaoAceitar;
     public Button botaoNegar;
     public Button botaoPassar;
     public TextMeshProUGUI pontuacaoText; 
+
+    [Header("Áudio dos Carimbos")]
+    public AudioSource audioSource;
+    public AudioClip stampApprovedSound;
+    public AudioClip stampDeniedSound;
 
     private CharacterController currentCharacter;
     private bool isTransitioning = false; 
@@ -56,10 +59,8 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        // Inicia o jogo no primeiro dia.
         StartNewDay(0);
 
-        // Configura os cliques dos botões
         if(botaoAceitar != null) botaoAceitar.onClick.AddListener(AoAceitar);
         if(botaoNegar != null) botaoNegar.onClick.AddListener(AoNegar);
         if(botaoPassar != null) botaoPassar.onClick.AddListener(AoPassar);
@@ -91,8 +92,7 @@ public class GameManager : MonoBehaviour
             countdownHUD.SetStartSeconds(currentDayConfig.characterServiceDuration); 
         }
 
-        // Força a atualização das regras do dia no RuleManager, se existir
-        RuleManager ruleManager = FindObjectOfType<RuleManager>(); // Correção aqui também por garantia
+        RuleManager ruleManager = FindObjectOfType<RuleManager>();
         if (ruleManager != null)
         {
             ruleManager.OnDayChanged(currentDayIndex + 1);
@@ -134,11 +134,10 @@ public class GameManager : MonoBehaviour
         GameObject newCharObject = Instantiate(characterPrefab, characterSpawnPoint.position, Quaternion.identity);
         currentCharacter = newCharObject.GetComponent<CharacterController>();
 
-        // Gera o passaporte para este novo personagem
         if (passportController != null)
         {
-            passportController.ClosePassport(); // Fecha visualmente para reiniciar
-            passportController.GenerateNewStudent(); // Cria os dados e o carimbo
+            passportController.ClosePassport();
+            passportController.GenerateNewStudent();
         }
 
         if (countdownHUD != null)
@@ -150,45 +149,50 @@ public class GameManager : MonoBehaviour
         charactersProcessedToday++; 
     }
 
-    // --- LÓGICA DE DECISÃO E PONTUAÇÃO ---
-
     void AoAceitar()
     {
         if (isTransitioning) return;
 
-        // Se o passaporte é VÁLIDO e o jogador aceitou -> PONTO
+        bool acertou = false;
+
         if (passportController != null && passportController.IsCurrentPassportValid)
         {
             pontuacao++;
+            acertou = true;
             Debug.Log("ACERTOU: Aceitou um passaporte válido.");
         }
         else
         {
+            acertou = false;
             Debug.Log("ERROU: Aceitou um passaporte inválido.");
-            // Lógica opcional: tirar pontos ou vidas
         }
 
+        TocarSomFeedback(acertou);
         AtualizarPontuacao();
-        ProcessDecision(true); // Aprova o personagem visualmente
+        ProcessDecision(true);
     }
 
     void AoNegar()
     {
         if (isTransitioning) return;
 
-        // Se o passaporte é INVÁLIDO e o jogador negou -> PONTO
+        bool acertou = false;
+
         if (passportController != null && !passportController.IsCurrentPassportValid)
         {
             pontuacao++;
+            acertou = true;
             Debug.Log("ACERTOU: Negou um passaporte inválido.");
         }
         else
         {
+            acertou = false;
             Debug.Log("ERROU: Negou um passaporte válido.");
         }
 
+        TocarSomFeedback(acertou);
         AtualizarPontuacao();
-        ProcessDecision(false); // Reprova o personagem visualmente
+        ProcessDecision(false);
     }
 
     void AoPassar()
@@ -196,8 +200,28 @@ public class GameManager : MonoBehaviour
         if (isTransitioning) return;
 
         Debug.Log("PASSOU: Nenhum ponto ganho.");
-        // Considera como recusa/saída sem pontuar
+        TocarSomFeedback(false);
         ProcessDecision(false); 
+    }
+
+    void TocarSomFeedback(bool acertou)
+    {
+        Vector3 cameraPos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
+
+        if (acertou)
+        {
+            if (stampApprovedSound != null) 
+            {
+                AudioSource.PlayClipAtPoint(stampApprovedSound, cameraPos, 1.0f); 
+            }
+        }
+        else
+        {
+            if (stampDeniedSound != null) 
+            {
+                AudioSource.PlayClipAtPoint(stampDeniedSound, cameraPos, 1.0f);
+            }
+        }
     }
 
     void AtualizarPontuacao()
@@ -226,7 +250,6 @@ public class GameManager : MonoBehaviour
         StartCoroutine(NextCharacterRoutine());
     }
 
-    // --- Transição de Dia ---
     private IEnumerator DayTransitionRoutine()
     {
         Debug.Log("Iniciando transição para o próximo dia...");
@@ -235,7 +258,6 @@ public class GameManager : MonoBehaviour
         {
             GameObject transitionScreenInstance = Instantiate(transitionScreenPrefab, Vector3.zero, Quaternion.identity);
             
-            // CORREÇÃO: Usando FindObjectOfType (compatível com Unity antigo)
             Canvas parentCanvas = FindObjectOfType<Canvas>(); 
             
             if (parentCanvas != null) 
@@ -253,7 +275,6 @@ public class GameManager : MonoBehaviour
                 }
             }
 
-            // Tenta configurar o script da tela de transição se ele existir
             DayTransitionUI transitionUI = transitionScreenInstance.GetComponent<DayTransitionUI>(); 
             if (transitionUI != null) 
             {
@@ -275,15 +296,13 @@ public class GameManager : MonoBehaviour
         StartNewDay(currentDayIndex + 1);
     }
 
-    // --- Métodos Públicos para UI externa (caso precise) ---
     public void HandleTimeOut()
     {
         Debug.Log("Tempo expirou!");
-        // Timeout conta como negar, mas sem ganhar ponto (ou pode tirar ponto se preferir)
+        TocarSomFeedback(false);
         ProcessDecision(false);
     }
 
-    // Mantidos para compatibilidade caso algum botão antigo ainda chame estes métodos diretamente
     public void AcceptDocument() => AoAceitar();
     public void RefuseDocument() => AoNegar();
 }
